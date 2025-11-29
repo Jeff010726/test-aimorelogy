@@ -5,39 +5,66 @@ import BlogCard from '../components/BlogCard';
 import { useHeadlines } from '../hooks/useHeadlines';
 import { RoutePath } from '../types';
 
-type ContentBlock = { type: 'text'; value: string } | { type: 'image'; src: string; alt?: string };
+const ALLOWED_TAGS = new Set(['p', 'br', 'strong', 'em', 'b', 'i', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'a', 'img']);
+const SELF_CLOSING = new Set(['br', 'img']);
+const ALLOWED_ATTRS: Record<string, Set<string>> = {
+  a: new Set(['href', 'target', 'rel']),
+  img: new Set(['src', 'alt', 'width', 'height', 'loading'])
+};
 
-const parseContentBlocks = (html?: string): ContentBlock[] => {
-  if (!html) return [];
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const blocks: ContentBlock[] = [];
-    doc.querySelectorAll('p, img').forEach((el) => {
-      if (el.tagName === 'P') {
-        const text = el.textContent?.trim();
-        if (text) {
-          blocks.push({ type: 'text', value: text });
-        }
-      } else if (el.tagName === 'IMG') {
-        const src = el.getAttribute('src');
-        if (src) {
-          blocks.push({ type: 'image', src, alt: el.getAttribute('alt') || '' });
-        }
-      }
-    });
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
-    if (!blocks.length) {
-      const fallback = doc.body.textContent?.trim();
-      if (fallback) {
-        blocks.push({ type: 'text', value: fallback });
-      }
+const sanitizeHtml = (html?: string) => {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  const walk = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return escapeHtml(node.textContent || '');
     }
-    return blocks;
-  } catch (err) {
-    console.warn('Failed to parse content HTML', err);
-    return [];
-  }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+
+    const childContent = Array.from(el.childNodes)
+      .map((child) => walk(child))
+      .join('');
+
+    if (!ALLOWED_TAGS.has(tag)) {
+      return childContent;
+    }
+
+    const attrs = ALLOWED_ATTRS[tag];
+    const attrString = attrs
+      ? Array.from(attrs)
+          .map((name) => {
+            const raw = el.getAttribute(name);
+            if (!raw) return '';
+            const value = escapeHtml(raw);
+            return ` ${name}="${value}"`;
+          })
+          .join('')
+      : '';
+
+    if (SELF_CLOSING.has(tag)) {
+      return `<${tag}${attrString}>`;
+    }
+
+    return `<${tag}${attrString}>${childContent}</${tag}>`;
+  };
+
+  const bodyContent = Array.from(doc.body.childNodes)
+    .map((node) => walk(node))
+    .join('');
+
+  return bodyContent;
 };
 
 const News: React.FC = () => {
@@ -50,16 +77,6 @@ const News: React.FC = () => {
     if (!headlines.length) return null;
     return headlines.find((item) => item.id === requestedId) || headlines[0];
   }, [headlines, requestedId]);
-
-  const contentBlocks = useMemo(
-    () => parseContentBlocks(selectedHeadline?.content || selectedHeadline?.excerpt),
-    [selectedHeadline?.content, selectedHeadline?.excerpt]
-  );
-
-  const firstContentImage = useMemo(
-    () => contentBlocks.find((b) => b.type === 'image') as ContentBlock | undefined,
-    [contentBlocks]
-  );
 
   useEffect(() => {
     if (selectedHeadline) {
@@ -77,10 +94,10 @@ const News: React.FC = () => {
     );
   }
 
-  const heroImage =
-    selectedHeadline.image ||
-    (firstContentImage?.type === 'image' ? firstContentImage.src : undefined) ||
-    'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1600&auto=format&fit=crop';
+  const sanitizedHtml = useMemo(
+    () => sanitizeHtml(selectedHeadline.content || selectedHeadline.excerpt),
+    [selectedHeadline.content, selectedHeadline.excerpt]
+  );
 
   return (
     <div className="bg-[#f9fafb] min-h-screen py-20">
@@ -90,67 +107,34 @@ const News: React.FC = () => {
           <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tight">Press & News</h1>
         </div>
 
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-10 bg-white border border-gray-200 shadow-sm">
-          <div className="lg:col-span-2 relative min-h-[320px] bg-gray-100 overflow-hidden">
-            <img
-              src={heroImage}
-              alt={selectedHeadline.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute top-4 left-4 bg-[#4f4398] text-white text-xs font-bold px-3 py-1 uppercase">
-              Selected Headline
-            </div>
+        <section className="bg-white border border-gray-200 shadow-sm p-6 md:p-10 space-y-6">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 font-bold tracking-[0.25em] uppercase">
+            <Newspaper size={16} className="text-[#4f4398]" />
+            <span>{selectedHeadline.source || 'Headline'}</span>
+            <span className="text-gray-300">|</span>
+            <span className="text-[#4f4398]">{selectedHeadline.date}</span>
           </div>
-          <div className="p-8 flex flex-col gap-4">
-            <div className="flex items-center gap-3 text-xs text-gray-500 font-bold tracking-[0.25em] uppercase">
-              <Newspaper size={16} className="text-[#4f4398]" />
-              <span>{selectedHeadline.source || 'Headline'}</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-[#4f4398]">{selectedHeadline.date}</span>
-            </div>
-            <h2 className="text-3xl font-black text-gray-900 leading-tight">{selectedHeadline.title}</h2>
-            <div className="text-gray-700 leading-relaxed text-sm md:text-base space-y-4">
-              {contentBlocks.length ? (
-                contentBlocks.map((block, idx) => {
-                  if (block.type === 'text') {
-                    return <p key={`p-${idx}`}>{block.value}</p>;
-                  }
-                  if (block.type === 'image') {
-                    return (
-                      <div key={`img-${idx}`} className="w-full rounded-sm overflow-hidden border border-gray-200 bg-gray-50">
-                        <img
-                          src={block.src}
-                          alt={block.alt || selectedHeadline.title}
-                          className="w-full h-auto object-contain"
-                          loading="lazy"
-                        />
-                      </div>
-                    );
-                  }
-                  return null;
-                })
-              ) : (
-                <p>{selectedHeadline.excerpt}</p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Link
-                to={RoutePath.NEWS}
-                className="bg-[#4f4398] text-white px-5 py-2 text-sm font-bold uppercase tracking-wide hover:bg-[#3e3479] transition-colors"
+          <h2 className="text-3xl font-black text-gray-900 leading-tight">{selectedHeadline.title}</h2>
+          <div className="prose prose-sm md:prose-base max-w-none prose-img:rounded prose-img:border prose-img:border-gray-200 prose-a:text-[#4f4398] prose-a:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700"
+            dangerouslySetInnerHTML={{ __html: sanitizedHtml || selectedHeadline.excerpt }}
+          />
+          <div className="flex flex-wrap gap-3 pt-2">
+            <Link
+              to={RoutePath.NEWS}
+              className="bg-[#4f4398] text-white px-5 py-2 text-sm font-bold uppercase tracking-wide hover:bg-[#3e3479] transition-colors"
+            >
+              Back to Headlines
+            </Link>
+            {selectedHeadline.originalLink && selectedHeadline.originalLink !== '#' && (
+              <a
+                href={selectedHeadline.originalLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2 border border-gray-300 text-gray-900 text-sm font-bold uppercase tracking-wide hover:border-[#4f4398] hover:text-[#4f4398] transition-colors bg-white"
               >
-                Back to Headlines
-              </Link>
-              {selectedHeadline.originalLink && selectedHeadline.originalLink !== '#' && (
-                <a
-                  href={selectedHeadline.originalLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2 border border-gray-300 text-gray-900 text-sm font-bold uppercase tracking-wide hover:border-[#4f4398] hover:text-[#4f4398] transition-colors bg-white"
-                >
-                  View Source <ExternalLink size={14} />
-                </a>
-              )}
-            </div>
+                View Source <ExternalLink size={14} />
+              </a>
+            )}
           </div>
         </section>
 
