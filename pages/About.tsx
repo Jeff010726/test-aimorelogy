@@ -59,7 +59,7 @@ const About: React.FC = () => {
                            2. Change src below to: "/assets/Public/kyr1.jpg"
                         */}
                         <img 
-                          src="/assets/Public/kyr1.jpg" 
+                          src={`${import.meta.env.BASE_URL}assets/Public/kyr1.jpg`} 
                           alt="Ke Yiran" 
                           className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                         />

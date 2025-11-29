@@ -130,12 +130,12 @@ const Header: React.FC = () => {
     >
       <div className="container mx-auto px-6 h-16 flex justify-between items-center">
         {/* Logo Area */}
-        <Link to={RoutePath.HOME} className="flex items-center z-50 mr-8">
-          <img 
-            src="/logo.png" 
-            alt="AIMORELOGY" 
-            className="h-8 w-auto object-contain" 
-          />
+          <Link to={RoutePath.HOME} className="flex items-center z-50 mr-8">
+            <img 
+              src={`${import.meta.env.BASE_URL}logo.png`} 
+              alt="AIMORELOGY" 
+              className="h-8 w-auto object-contain" 
+            />
         </Link>
 
         {/* Desktop Navigation */}
