@@ -51,7 +51,7 @@ const About: React.FC = () => {
              <div className="flex flex-col lg:flex-row gap-16">
                 {/* Left Column: Avatar & Profile Header */}
                 <div className="lg:w-1/4 flex flex-col items-center lg:items-start text-center lg:text-left sticky top-24 self-start">
-                   <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-gray-50 shadow-lg mb-8 relative group">
+                   <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-gray-50 shadow-lg mb-8 relative">
                         {/* 
                            FIX: Using a placeholder because the local file is missing.
                            TO RESTORE REAL IMAGE:
@@ -61,7 +61,7 @@ const About: React.FC = () => {
                         <img 
                           src={`${import.meta.env.BASE_URL}assets/Public/kyr1.jpg`} 
                           alt="Ke Yiran" 
-                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                          className="w-full h-full object-cover transition-all duration-500"
                         />
                    </div>
                    <h3 className="text-3xl font-black text-gray-900 uppercase mb-2">Ke Yiran</h3>
