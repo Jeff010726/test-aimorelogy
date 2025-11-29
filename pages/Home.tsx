@@ -3,8 +3,9 @@ import { ChevronRight, ChevronLeft, Cpu, Wifi, Activity, Eye } from 'lucide-reac
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import BlogCard from '../components/BlogCard';
-import { PRODUCTS, BLOG_POSTS } from '../constants';
-import { RoutePath, HeadlineFeed, BlogPost } from '../types';
+import { PRODUCTS } from '../constants';
+import { RoutePath } from '../types';
+import { useHeadlines } from '../hooks/useHeadlines';
 
 interface SlideData {
   id: number;
@@ -115,23 +116,9 @@ const CarouselSection: React.FC<CarouselSectionProps> = ({ title, children }) =>
   );
 };
 
-const HEADLINES_URL = `${import.meta.env.BASE_URL}data/latest-headlines.json`;
-
-const formatHeadlineDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-};
-
-
 const Home: React.FC = () => {
-  const fallbackHeadlines = BLOG_POSTS.map((post) => ({
-    ...post,
-    link: post.link || '#',
-    source: post.author
-  }));
+  const { headlines } = useHeadlines();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [headlines, setHeadlines] = useState<BlogPost[]>(fallbackHeadlines);
   const slideDuration = 5000;
   
   // Duplicate data to ensure enough content for scrolling demonstration
@@ -196,37 +183,6 @@ const Home: React.FC = () => {
   ];
 
   useEffect(() => {
-    const fetchHeadlines = async () => {
-      try {
-        const response = await fetch(HEADLINES_URL, { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-
-        const data: HeadlineFeed = await response.json();
-        if (Array.isArray(data.items)) {
-          const mapped = data.items.map((item) => ({
-            id: item.id,
-            title: item.title,
-            excerpt: item.summary,
-            date: formatHeadlineDate(item.date),
-            author: item.source,
-            source: item.source,
-            image: item.image,
-            link: item.link
-          }));
-          setHeadlines(mapped.length ? mapped : fallbackHeadlines);
-        }
-      } catch (error) {
-        console.error('Failed to fetch latest headlines', error);
-        setHeadlines(fallbackHeadlines);
-      }
-    };
-
-    fetchHeadlines();
-  }, []);
-
-  useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, slideDuration);
@@ -237,8 +193,7 @@ const Home: React.FC = () => {
     setCurrentSlide(index);
   };
 
-  const headlineList = headlines.length ? headlines : fallbackHeadlines;
-  const carouselHeadlines = headlineList.length < 6 ? [...headlineList, ...headlineList] : headlineList;
+  const carouselHeadlines = headlines.length < 6 ? [...headlines, ...headlines] : headlines;
 
   return (
     <div className="bg-white">

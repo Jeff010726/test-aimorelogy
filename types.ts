@@ -15,6 +15,7 @@ export interface BlogPost {
   image?: string;
   link?: string;
   source?: string;
+  originalLink?: string;
 }
 
 export interface NewsItem {
