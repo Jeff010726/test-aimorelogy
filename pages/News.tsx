@@ -36,6 +36,12 @@ const News: React.FC = () => {
     selectedHeadline.image ||
     'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1600&auto=format&fit=crop';
 
+  const articleContent = selectedHeadline.content || selectedHeadline.excerpt;
+  const contentParagraphs = articleContent
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
   return (
     <div className="bg-[#f9fafb] min-h-screen py-20">
       <div className="container mx-auto px-6 space-y-12">
@@ -63,9 +69,15 @@ const News: React.FC = () => {
               <span className="text-[#4f4398]">{selectedHeadline.date}</span>
             </div>
             <h2 className="text-3xl font-black text-gray-900 leading-tight">{selectedHeadline.title}</h2>
-            <p className="text-gray-600 leading-relaxed text-sm md:text-base">
-              {selectedHeadline.excerpt}
-            </p>
+            <div className="text-gray-700 leading-relaxed text-sm md:text-base space-y-4">
+              {contentParagraphs.length ? (
+                contentParagraphs.map((p, idx) => (
+                  <p key={idx}>{p}</p>
+                ))
+              ) : (
+                <p>{selectedHeadline.excerpt}</p>
+              )}
+            </div>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link
                 to={RoutePath.NEWS}

@@ -9,7 +9,7 @@ const MAX_ITEMS = Number(process.env.MAX_ITEMS || 10);
 
 const parser = new Parser({
   customFields: {
-    item: ['media:thumbnail']
+    item: ['media:thumbnail', 'content:encoded']
   }
 });
 
@@ -19,10 +19,23 @@ const __dirname = path.dirname(__filename);
 const normalizeText = (value = '') =>
   value.replace(/\s+/g, ' ').trim();
 
+const pickImageFromHtml = (html = '') => {
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return match?.[1] || '';
+};
+
 const pickImage = (item) => {
   if (item?.enclosure?.url) return item.enclosure.url;
   if (Array.isArray(item?.enclosure) && item.enclosure[0]?.url) return item.enclosure[0].url;
   if (item['media:thumbnail']) return item['media:thumbnail'];
+  if (item['content:encoded']) {
+    const inline = pickImageFromHtml(item['content:encoded']);
+    if (inline) return inline;
+  }
+  if (item.content) {
+    const inline = pickImageFromHtml(item.content);
+    if (inline) return inline;
+  }
   return '';
 };
 
@@ -30,11 +43,13 @@ async function main() {
   const feed = await parser.parseURL(FEED_URL);
   const items = (feed.items || []).slice(0, MAX_ITEMS).map((item, idx) => {
     const linkHost = item.link ? new URL(item.link).hostname.replace(/^www\./, '') : '';
-    const summary = normalizeText(item.contentSnippet || item.content || '');
+    const rawContent = item['content:encoded'] || item.content || '';
+    const summary = normalizeText(item.contentSnippet || rawContent || '');
     return {
       id: idx + 1,
       title: normalizeText(item.title || 'Untitled'),
       summary: summary.slice(0, 220),
+      content: rawContent || summary,
       date: item.isoDate || item.pubDate || new Date().toISOString(),
       source: linkHost || feed.title || 'News',
       link: item.link || FEED_URL,

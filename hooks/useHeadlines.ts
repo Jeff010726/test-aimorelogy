@@ -43,6 +43,7 @@ export const useHeadlines = () => {
             id: item.id ?? idx + 1,
             title: item.title,
             excerpt: item.summary,
+            content: item.content || item.summary,
             date: formatHeadlineDate(item.date),
             author: item.source,
             source: item.source,
@@ -80,6 +81,7 @@ export const useHeadlines = () => {
         return {
           ...item,
           id,
+          content: item.content || item.excerpt,
           link: `${RoutePath.NEWS}?headline=${id}`,
           source: item.source || item.author,
           originalLink: item.originalLink || item.link

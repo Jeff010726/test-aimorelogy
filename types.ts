@@ -15,6 +15,7 @@ export interface BlogPost {
   image?: string;
   link?: string;
   source?: string;
+  content?: string;
   originalLink?: string;
 }
 
@@ -30,6 +31,7 @@ export interface HeadlineItem {
   id: number;
   title: string;
   summary: string;
+  content?: string;
   date: string;
   source: string;
   link: string;
