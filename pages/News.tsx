@@ -5,6 +5,41 @@ import BlogCard from '../components/BlogCard';
 import { useHeadlines } from '../hooks/useHeadlines';
 import { RoutePath } from '../types';
 
+type ContentBlock = { type: 'text'; value: string } | { type: 'image'; src: string; alt?: string };
+
+const parseContentBlocks = (html?: string): ContentBlock[] => {
+  if (!html) return [];
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const blocks: ContentBlock[] = [];
+    doc.querySelectorAll('p, img').forEach((el) => {
+      if (el.tagName === 'P') {
+        const text = el.textContent?.trim();
+        if (text) {
+          blocks.push({ type: 'text', value: text });
+        }
+      } else if (el.tagName === 'IMG') {
+        const src = el.getAttribute('src');
+        if (src) {
+          blocks.push({ type: 'image', src, alt: el.getAttribute('alt') || '' });
+        }
+      }
+    });
+
+    if (!blocks.length) {
+      const fallback = doc.body.textContent?.trim();
+      if (fallback) {
+        blocks.push({ type: 'text', value: fallback });
+      }
+    }
+    return blocks;
+  } catch (err) {
+    console.warn('Failed to parse content HTML', err);
+    return [];
+  }
+};
+
 const News: React.FC = () => {
   const { headlines, loading } = useHeadlines();
   const location = useLocation();
@@ -15,6 +50,16 @@ const News: React.FC = () => {
     if (!headlines.length) return null;
     return headlines.find((item) => item.id === requestedId) || headlines[0];
   }, [headlines, requestedId]);
+
+  const contentBlocks = useMemo(
+    () => parseContentBlocks(selectedHeadline?.content || selectedHeadline?.excerpt),
+    [selectedHeadline?.content, selectedHeadline?.excerpt]
+  );
+
+  const firstContentImage = useMemo(
+    () => contentBlocks.find((b) => b.type === 'image') as ContentBlock | undefined,
+    [contentBlocks]
+  );
 
   useEffect(() => {
     if (selectedHeadline) {
@@ -34,13 +79,8 @@ const News: React.FC = () => {
 
   const heroImage =
     selectedHeadline.image ||
+    (firstContentImage?.type === 'image' ? firstContentImage.src : undefined) ||
     'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1600&auto=format&fit=crop';
-
-  const articleContent = selectedHeadline.content || selectedHeadline.excerpt;
-  const contentParagraphs = articleContent
-    .split(/\n+/)
-    .map((p) => p.trim())
-    .filter(Boolean);
 
   return (
     <div className="bg-[#f9fafb] min-h-screen py-20">
@@ -70,10 +110,25 @@ const News: React.FC = () => {
             </div>
             <h2 className="text-3xl font-black text-gray-900 leading-tight">{selectedHeadline.title}</h2>
             <div className="text-gray-700 leading-relaxed text-sm md:text-base space-y-4">
-              {contentParagraphs.length ? (
-                contentParagraphs.map((p, idx) => (
-                  <p key={idx}>{p}</p>
-                ))
+              {contentBlocks.length ? (
+                contentBlocks.map((block, idx) => {
+                  if (block.type === 'text') {
+                    return <p key={`p-${idx}`}>{block.value}</p>;
+                  }
+                  if (block.type === 'image') {
+                    return (
+                      <div key={`img-${idx}`} className="w-full rounded-sm overflow-hidden border border-gray-200 bg-gray-50">
+                        <img
+                          src={block.src}
+                          alt={block.alt || selectedHeadline.title}
+                          className="w-full h-auto object-contain"
+                          loading="lazy"
+                        />
+                      </div>
+                    );
+                  }
+                  return null;
+                })
               ) : (
                 <p>{selectedHeadline.excerpt}</p>
               )}
