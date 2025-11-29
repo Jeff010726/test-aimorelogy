@@ -11,8 +11,10 @@ export interface BlogPost {
   title: string;
   excerpt: string;
   date: string;
-  author: string;
-  image: string;
+  author?: string;
+  image?: string;
+  link?: string;
+  source?: string;
 }
 
 export interface NewsItem {
@@ -21,6 +23,22 @@ export interface NewsItem {
   summary: string;
   date: string;
   source: string;
+}
+
+export interface HeadlineItem {
+  id: number;
+  title: string;
+  summary: string;
+  date: string;
+  source: string;
+  link: string;
+  image?: string;
+}
+
+export interface HeadlineFeed {
+  fetchedAt: string;
+  feed: string;
+  items: HeadlineItem[];
 }
 
 export enum RoutePath {
