@@ -12,30 +12,26 @@ const Footer: React.FC = () => {
     phone: '',
     message: ''
   });
+  const [status, setStatus] = useState<'idle' | 'success'>('idle');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (status !== 'idle') setStatus('idle');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const { name, email, company, jobTitle, phone, message } = formData;
-    
-    // Construct email body
-    const body = `Name: ${name}
-Email: ${email}
-Company: ${company}
-Job Title: ${jobTitle}
-Phone: ${phone}
-
-Message:
-${message}`;
-
-    const subject = `Contact Request from ${name} - ${company}`;
-    
-    // Open mail client
-    window.location.href = `mailto:info@aimorelogy.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setStatus('success');
+    console.log('Contact form submitted (demo):', formData);
+    setFormData({
+      name: '',
+      email: '',
+      company: '',
+      jobTitle: '',
+      phone: '',
+      message: ''
+    });
   };
 
   return (
@@ -109,8 +105,11 @@ ${message}`;
                ></textarea>
                
                <div className="md:col-span-2">
+                 {status === 'success' && (
+                   <p className="text-green-400 text-sm mb-2">Thanks! We received your request (demo submit).</p>
+                 )}
                  <button type="submit" className="bg-[#4f4398] text-white font-bold uppercase px-8 py-3 hover:bg-[#5f51b0] transition-colors flex items-center gap-2">
-                   Send Email <Send size={16} />
+                   Submit <Send size={16} />
                  </button>
                </div>
             </form>
@@ -135,10 +134,7 @@ ${message}`;
           <div className="space-y-4">
             <h4 className="text-white font-bold uppercase text-sm tracking-wider">Support</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-[#4f4398] transition-colors">Drivers</a></li>
-              <li><a href="#" className="hover:text-[#4f4398] transition-colors">Knowledge Base</a></li>
-              <li><a href="#" className="hover:text-[#4f4398] transition-colors">Forums</a></li>
-              <li><a href="#" className="hover:text-[#4f4398] transition-colors">Warranty</a></li>
+              <li><a href="#" className="hover:text-[#4f4398] transition-colors">Documents</a></li>
             </ul>
           </div>
           <div className="space-y-4">
